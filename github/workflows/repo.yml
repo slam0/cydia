@@ -1,0 +1,62 @@
+name: Repozytorium Cydii
+
+# Zbiera paczki .deb z wydań "najnowsza" wszystkich projektów wypisanych w projekty.txt
+# i publikuje je jako repozytorium Cydii na GitHub Pages.
+on:
+  push:
+    branches: [main, master]
+  schedule:
+    - cron: '17 4 * * *'     # codziennie rano sprawdza, czy są nowe wersje
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Testy skryptu
+        run: python3 -m unittest discover -s tools/tests -p 'test_build_repo.py'
+
+      - name: Pobierz paczki z projektów
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          mkdir -p work/debs
+          grep -v '^[[:space:]]*#' projekty.txt | sed 's/[[:space:]]//g' | grep . | while read -r PROJ; do
+            echo "==> $PROJ"
+            gh release download najnowsza -R "$PROJ" -D work/debs -p '*.deb' --clobber \
+              || echo "    (brak wydania 'najnowsza' w $PROJ - pomijam)"
+          done
+          ls -l work/debs
+
+      - name: Złóż repozytorium
+        run: |
+          OWNER="$(echo "${GITHUB_REPOSITORY%%/*}" | tr 'A-Z' 'a-z')"
+          mkdir -p _site
+          python3 tools/build_repo.py work/debs _site "https://${OWNER}.github.io/${GITHUB_REPOSITORY#*/}/"
+          cp -r site/. _site/
+
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-22.04
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4
