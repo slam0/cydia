@@ -1,0 +1,5 @@
+# Lista projektów, których paczki trafiają do tego repozytorium Cydii.
+# Jedna linia = jedno repozytorium na GitHubie w formie wlasciciel/nazwa.
+# Z każdego repozytorium pobieramy pliki .deb z wydania (Release) o tagu "najnowsza".
+# Linie zaczynające się od # są pomijane.
+slam0/Rozklad
