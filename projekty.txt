@@ -3,3 +3,4 @@
 # Z każdego repozytorium pobieramy pliki .deb z wydania (Release) o tagu "najnowsza".
 # Linie zaczynające się od # są pomijane.
 slam0/Rozklad
+slam0/Currency
